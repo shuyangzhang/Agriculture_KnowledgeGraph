@@ -92,3 +92,6 @@ A*/
 #train data
 
 wikidataSpider/TrainDataBaseOnWiki/train_data*.txt
+
+# tox environment files
+devenv/
