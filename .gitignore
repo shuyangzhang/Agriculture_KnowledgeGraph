@@ -95,3 +95,6 @@ wikidataSpider/TrainDataBaseOnWiki/train_data*.txt
 
 # tox environment files
 devenv/
+
+# vscode config files
+.vscode/
