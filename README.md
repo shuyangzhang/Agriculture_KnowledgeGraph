@@ -1,6 +1,6 @@
 # Agricultural Knowledge Graph
 
-项目demo：http://ecnukg.vicp.io
+项目demo：http://ecnukg.vicp.io 
 
 ## 项目介绍：
 
@@ -64,33 +64,40 @@
 
 - hudong_pedia.csv : 已经爬好的农业实体的百科页面的结构化csv文件
 - labels.txt： 5000多个手工标注的实体类别
-- predict_labels.txt:  KNN算法预测的13W多个实体的类别
+- predict_labels.txt:  KNN算法预测的15W多个实体的类别
 - /wikidataSpider/wikidataProcessing/wikidata_relation.csv: predict_labels.txt中实体在wikidata中对应的三元组关系
 - attributes.csv: 部分实体的属性(互动百科页面中直接得到)
+- wikidataSpider/weatherData/static_weather_list.csv： 气候类型列表
+- wikidataSpider/weatherData/weather_plant.csv：气候与植物的种植关系
+- wikidataSpider/weatherData/city_weather.csv：城市与气候的关系
 
 
 
 ## 项目配置
 
-**系统需要安装：**
-
-- scrapy     ---爬虫框架
-- django     ---web框架
+**安装环境：**
+- python 3
 - neo4j       ---图数据库
-- thulac      ---分词、词性标注
-- py2neo    ---python连接neo4j的工具
-- pyfasttext    ---facebook开源的词向量计算框架
-- pinyin  ---获取中文首字母小工具
-- 预训练好的词向量模型wiki.zh.bin（仅部署网站的话不需要下载）    ---下载链接：http://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.zh.zip
-- mongoDB  ---存储文档数据
+- scrapy>=1.4.0    ---爬虫框架
+
+**pip3 依赖**
+
+- django>=2.1.2     ---web框架
+- thulac>=0.1.2      ---分词、词性标注
+- py2neo==4.1.0    ---python连接neo4j的工具 (注意不兼容旧版本)
+- Cython   --- python调用C的接口
+- pyfasttext>=0.4.5    ---facebook开源的词向量计算框架
+- pinyin>=0.4.0  ---获取中文首字母小工具
 - pymongo  ---python操作mongoDB的工具
+- ~~预训练好的词向量模型wiki.zh.bin（仅部署网站的话不需要下载）~~    ---下载链接：http://s3-us-west-1.amazonaws.com/fasttext-vectors/wiki.zh.zip
+- ~~mongoDB  ---存储文档数据 (仅部署网站的话不需要安装)~~
 
 
 （以上部分除了neo4j在官网下，wiki.zh.bin在亚马逊s3下载，其它均可直接用pip3 install 安装）
 
 
 
-**项目部署：**
+**导入数据：**
 
 1. 将hudong_pedia.csv导入neo4j：开启neo4j，进入neo4j控制台。将hudong_pedia.csv放入neo4j安装目录下的/import目录。在控制台依次输入：
 
@@ -162,8 +169,41 @@ CREATE (entity1)-[:RELATION { type: line.AttributeName }]->(entity2)
                                                                                                                          
 ```
 
+### (update 2018.11.11)
+将气候名称和适合种植的植物导入到neo4j
 
+**导入气候名称:**
 
+将wikidataSpider/weatherData/static_weather_list.csv放在指定的位置(import文件夹下)
+
+```
+//导入节点
+LOAD CSV WITH HEADERS FROM "file:///static_weather_list.csv" AS line
+MERGE (:Weather { title: line.title })
+
+//添加索引
+CREATE CONSTRAINT ON (c:Weather)
+ASSERT c.title IS UNIQUE
+```
+
+**导入气候与植物的关系**
+
+```
+
+将wikidataSpider/weatherData/weather_plant.csv放在指定的位置(import文件夹下)
+//导入hudongItem和新加入节点之间的关系
+LOAD CSV  WITH HEADERS FROM "file:///weather_plant.csv" AS line
+MATCH (entity1:Weather{title:line.Weather}) , (entity2:HudongItem{title:line.Plant})
+CREATE (entity1)-[:Weather2Plant { type: line.relation }]->(entity2)
+导入城市的气候
+
+将city_weather.csv放在指定的位置(import 文件夹下)
+(这步大约需要15分钟左右)
+//导入城市对应的气候
+LOAD CSV WITH HEADERS FROM "file:///city_weather.csv" AS line
+MATCH (city{title:line.city}) , (weather{title:line.weather})
+CREATE (city)-[:CityWeather { type: line.relation }]->(weather)
+```
 
 
 以上步骤是导入爬取到的关系
@@ -183,6 +223,17 @@ sudo sh django_server_start.sh
 ```
 
 这样就成功的启动了django。我们进入8000端口主页面，输入文本，即可看到以下命名实体和分词的结果（确保django和neo4j都处于开启状态）
+
+----------------------
+###  (update 2018.11.11)
+添加了农业知识问答
+![](https://raw.githubusercontent.com/CrisJk/SomePicture/master/blog_picture/1541921074856.jpg)
+
+###  (update 2018.10.26) 
+- 修改部分配置信息
+- 关系查询中，添加了2个实体间的最短路查询，从而挖掘出实体之间一些奇怪的隐含关系
+
+![image](https://i.loli.net/2018/10/27/5bd3bf6ce4472.jpg)
 
 ### 农业实体识别+实体分类
 
@@ -249,7 +300,10 @@ sudo sh django_server_start.sh
 
 ![](https://raw.githubusercontent.com/CrisJk/crisjk.github.io/master/resource/pictures/Agriculture-KnowledgeGraph-Data-README/mongo.png)
 
+
+
 **使用方法**: 启动neo4j,mongodb之后，进入demo目录，启动django服务，进入127.0.0.1:8000/tagging即可使用
+
 
 
 
