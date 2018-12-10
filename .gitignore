@@ -98,3 +98,13 @@ devenv/
 
 # vscode config files
 .vscode/
+
+# json
+
+*.json
+
+**/sgns.wiki.bigram-char
+*.bz2
+relationExtraction/data/*.txt
+demo/.idea/*
+.idea/*
